@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isAdminLoggedIn, logoutAdmin } from "@/lib/admin-auth";
 import {
-  setProducts,
-  setServices,
-  setStylists,
-  setExtensions,
+  upsertProduct,
+  upsertService,
+  upsertStylist,
+  upsertExtension,
   fetchProducts,
   fetchServices,
   fetchStylists,
@@ -20,6 +20,7 @@ import {
   deleteStylistRemote,
   deleteExtensionRemote,
   nextId,
+  isSupabaseConfigured,
   type Extension,
 } from "@/lib/store";
 import type { Product, Service, Stylist } from "@/lib/data";
@@ -74,6 +75,7 @@ export default function AdminPage() {
   const [formType, setFormType] = useState<Tab>("products");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -142,143 +144,162 @@ export default function AdminPage() {
   const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Please choose an image under 2MB");
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Please choose an image under 5MB");
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setImagePreview(String(reader.result || ""));
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      // Compress to max 900px wide JPEG for faster cloud save
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 900;
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setImagePreview(dataUrl);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        setImagePreview(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.onerror = () => setImagePreview(dataUrl);
+      img.src = dataUrl;
+    };
     reader.readAsDataURL(file);
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (saving) return;
+    if (!isSupabaseConfigured()) {
+      alert(
+        "Cloud database is not connected.\n\nSet on Vercel:\n• NEXT_PUBLIC_SUPABASE_URL\n• NEXT_PUBLIC_SUPABASE_ANON_KEY\n• SUPABASE_SERVICE_ROLE_KEY\n\nThen Redeploy."
+      );
+      return;
+    }
+    setSaving(true);
     const fd = new FormData(e.currentTarget);
     const img = imagePreview || DEFAULT_IMG;
 
-    if (formType === "products") {
-      const item: Product = {
-        id: editingId ?? nextId(products),
-        name: String(fd.get("name")),
-        price: Number(fd.get("price")),
-        category: String(fd.get("category") || "tops"),
-        image: img,
-        images: [img],
-        description: String(fd.get("description") || ""),
-        sizes: String(fd.get("sizes") || "S,M,L")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        colors: String(fd.get("colors") || "Black")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      };
-      const next = editingId
-        ? products.map((p) => (p.id === editingId ? item : p))
-        : [...products, item];
-      const res = await setProducts(next);
-      if (!res.ok) {
-        alert(
-          "Saved on this device only. Cloud sync failed: " +
-            (res.error || "unknown") +
-            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
-        );
+    try {
+      if (formType === "products") {
+        const item: Product = {
+          id: editingId ?? nextId(products),
+          name: String(fd.get("name")),
+          price: Number(fd.get("price")),
+          category: String(fd.get("category") || "tops"),
+          image: img,
+          images: [img],
+          description: String(fd.get("description") || ""),
+          sizes: String(fd.get("sizes") || "S,M,L")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          colors: String(fd.get("colors") || "Black")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+        };
+        const res = await upsertProduct(item);
+        if (!res.ok) {
+          alert("Could not save to cloud:\n" + (res.error || "Unknown error"));
+          setSaving(false);
+          return;
+        }
+        const next = editingId
+          ? products.map((p) => (p.id === editingId ? item : p))
+          : [...products, item];
+        setProductsState(next);
+      } else if (formType === "services") {
+        const item: Service = {
+          id: editingId ?? nextId(services),
+          name: String(fd.get("name")),
+          price: Number(fd.get("price")),
+          duration: Number(fd.get("duration") || 60),
+          description: String(fd.get("description") || ""),
+        };
+        const res = await upsertService(item);
+        if (!res.ok) {
+          alert("Could not save to cloud:\n" + (res.error || "Unknown error"));
+          setSaving(false);
+          return;
+        }
+        const next = editingId
+          ? services.map((s) => (s.id === editingId ? item : s))
+          : [...services, item];
+        setServicesState(next);
+      } else if (formType === "stylists") {
+        const item: Stylist = {
+          id: editingId ?? nextId(stylists),
+          name: String(fd.get("name")),
+          specialty: String(fd.get("specialty") || ""),
+          image: img,
+          bio: String(fd.get("bio") || ""),
+        };
+        const res = await upsertStylist(item);
+        if (!res.ok) {
+          alert("Could not save to cloud:\n" + (res.error || "Unknown error"));
+          setSaving(false);
+          return;
+        }
+        const next = editingId
+          ? stylists.map((s) => (s.id === editingId ? item : s))
+          : [...stylists, item];
+        setStylistsState(next);
+      } else if (formType === "extensions") {
+        const item: Extension = {
+          id: editingId ?? nextId(extensions),
+          name: String(fd.get("name")),
+          price: Number(fd.get("price")),
+          length: String(fd.get("length") || ""),
+          texture: String(fd.get("texture") || ""),
+          image: img,
+          description: String(fd.get("description") || ""),
+        };
+        const res = await upsertExtension(item);
+        if (!res.ok) {
+          alert("Could not save to cloud:\n" + (res.error || "Unknown error"));
+          setSaving(false);
+          return;
+        }
+        const next = editingId
+          ? extensions.map((x) => (x.id === editingId ? item : x))
+          : [...extensions, item];
+        setExtensionsState(next);
       }
-      setProductsState(next);
-    } else if (formType === "services") {
-      const item: Service = {
-        id: editingId ?? nextId(services),
-        name: String(fd.get("name")),
-        price: Number(fd.get("price")),
-        duration: Number(fd.get("duration") || 60),
-        description: String(fd.get("description") || ""),
-      };
-      const next = editingId
-        ? services.map((s) => (s.id === editingId ? item : s))
-        : [...services, item];
-      const res = await setServices(next);
-      if (!res.ok) {
-        alert(
-          "Saved on this device only. Cloud sync failed: " +
-            (res.error || "unknown") +
-            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
-        );
-      }
-      setServicesState(next);
-    } else if (formType === "stylists") {
-      const item: Stylist = {
-        id: editingId ?? nextId(stylists),
-        name: String(fd.get("name")),
-        specialty: String(fd.get("specialty") || ""),
-        image: img,
-        bio: String(fd.get("bio") || ""),
-      };
-      const next = editingId
-        ? stylists.map((s) => (s.id === editingId ? item : s))
-        : [...stylists, item];
-      const res = await setStylists(next);
-      if (!res.ok) {
-        alert(
-          "Saved on this device only. Cloud sync failed: " +
-            (res.error || "unknown") +
-            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
-        );
-      }
-      setStylistsState(next);
-    } else if (formType === "extensions") {
-      const item: Extension = {
-        id: editingId ?? nextId(extensions),
-        name: String(fd.get("name")),
-        price: Number(fd.get("price")),
-        length: String(fd.get("length") || ""),
-        texture: String(fd.get("texture") || ""),
-        image: img,
-        description: String(fd.get("description") || ""),
-      };
-      const next = editingId
-        ? extensions.map((x) => (x.id === editingId ? item : x))
-        : [...extensions, item];
-      const res = await setExtensions(next);
-      if (!res.ok) {
-        alert(
-          "Saved on this device only. Cloud sync failed: " +
-            (res.error || "unknown") +
-            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
-        );
-      }
-      setExtensionsState(next);
+      closeForm();
+    } catch (err) {
+      alert("Save failed: " + (err instanceof Error ? err.message : "Unknown error"));
     }
-    closeForm();
+    setSaving(false);
   };
 
   const removeProduct = async (id: number) => {
     if (!confirm("Remove this product?")) return;
-    const next = products.filter((p) => p.id !== id);
-    await setProducts(next);
     await deleteProductRemote(id);
-    setProductsState(next);
+    setProductsState(products.filter((p) => p.id !== id));
   };
   const removeService = async (id: number) => {
     if (!confirm("Remove this service?")) return;
-    const next = services.filter((s) => s.id !== id);
-    await setServices(next);
     await deleteServiceRemote(id);
-    setServicesState(next);
+    setServicesState(services.filter((s) => s.id !== id));
   };
   const removeStylist = async (id: number) => {
     if (!confirm("Remove this stylist?")) return;
-    const next = stylists.filter((s) => s.id !== id);
-    await setStylists(next);
     await deleteStylistRemote(id);
-    setStylistsState(next);
+    setStylistsState(stylists.filter((s) => s.id !== id));
   };
   const removeExtension = async (id: number) => {
     if (!confirm("Remove this extension?")) return;
-    const next = extensions.filter((x) => x.id !== id);
-    await setExtensions(next);
     await deleteExtensionRemote(id);
-    setExtensionsState(next);
+    setExtensionsState(extensions.filter((x) => x.id !== id));
   };
 
   if (!ready) {
@@ -814,9 +835,10 @@ export default function AdminPage() {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                className="flex-1 bg-charcoal text-cream py-2.5 rounded-full text-sm font-medium"
+                disabled={saving}
+                className="flex-1 bg-charcoal text-cream py-2.5 rounded-full text-sm font-medium disabled:opacity-60"
               >
-                {editingId ? "Update" : "Save"}
+                {saving ? "Saving…" : editingId ? "Update" : "Save"}
               </button>
               <button
                 type="button"

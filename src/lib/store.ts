@@ -18,15 +18,21 @@ const KEYS = {
 };
 
 async function adminMutate(payload: {
-  action: "upsert" | "delete" | "replace";
+  action: "upsert" | "delete";
   table: string;
   rows?: unknown[];
   id?: number;
 }): Promise<{ ok: boolean; error?: string }> {
   if (!isSupabaseConfigured()) {
-    return { ok: true }; // local-only mode
+    return {
+      ok: false,
+      error:
+        "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY on Vercel.",
+    };
   }
-  if (typeof window === "undefined") return { ok: false, error: "Server-side mutate not supported" };
+  if (typeof window === "undefined") {
+    return { ok: false, error: "Cannot save from server" };
+  }
   try {
     const res = await fetch("/api/admin/mutate", {
       method: "POST",
@@ -34,8 +40,8 @@ async function adminMutate(payload: {
       credentials: "include",
       body: JSON.stringify(payload),
     });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       const error = data.error || `Save failed (${res.status})`;
       console.error("admin mutate failed", error);
       return { ok: false, error };
@@ -47,7 +53,6 @@ async function adminMutate(payload: {
     return { ok: false, error };
   }
 }
-
 
 export type Extension = {
   id: number;
@@ -88,6 +93,81 @@ const defaultExtensions: Extension[] = [
     description: "Ready-to-wear Spanish curl unit, full and bouncy.",
   },
 ];
+
+/** Upsert one product to cloud */
+export async function upsertProduct(item: Product): Promise<{ ok: boolean; error?: string }> {
+  return adminMutate({
+    action: "upsert",
+    table: "products",
+    rows: [
+      {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+        image: item.image,
+        images: item.images,
+        description: item.description,
+        sizes: item.sizes,
+        colors: item.colors,
+        updated_at: new Date().toISOString(),
+      },
+    ],
+  });
+}
+
+export async function upsertService(item: Service): Promise<{ ok: boolean; error?: string }> {
+  return adminMutate({
+    action: "upsert",
+    table: "services",
+    rows: [
+      {
+        id: item.id,
+        name: item.name,
+        duration: item.duration,
+        price: item.price,
+        description: item.description,
+      },
+    ],
+  });
+}
+
+export async function upsertStylist(item: Stylist): Promise<{ ok: boolean; error?: string }> {
+  return adminMutate({
+    action: "upsert",
+    table: "stylists",
+    rows: [
+      {
+        id: item.id,
+        name: item.name,
+        specialty: item.specialty,
+        image: item.image,
+        bio: item.bio,
+      },
+    ],
+  });
+}
+
+export async function upsertExtension(item: Extension): Promise<{ ok: boolean; error?: string }> {
+  return adminMutate({
+    action: "upsert",
+    table: "extensions",
+    rows: [
+      {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        length: item.length || "",
+        texture: item.texture || "",
+        image: item.image,
+        description: item.description,
+      },
+    ],
+  });
+}
+
+
+
 
 function loadLocal<T>(key: string, fallback: T[]): T[] {
   if (typeof window === "undefined") return fallback;
@@ -179,7 +259,7 @@ export function getProducts(): Product[] {
 export async function setProducts(data: Product[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.products, data);
   return adminMutate({
-    action: "replace",
+    action: "upsert",
     table: "products",
     rows: data.map((p) => ({
       id: p.id,
@@ -206,7 +286,10 @@ export async function fetchServices(): Promise<Service[]> {
     const sb = getSupabase();
     if (sb) {
       const { data, error } = await sb.from("services").select("*").order("id");
-      if (!error && data && data.length > 0) return data.map(mapService);
+      if (!error && data) {
+        if (data.length > 0) return data.map(mapService);
+        return loadLocal(KEYS.services, defaultServices);
+      }
     }
   } catch (e) {
     console.error("fetchServices", e);
@@ -221,7 +304,7 @@ export function getServices(): Service[] {
 export async function setServices(data: Service[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.services, data);
   return adminMutate({
-    action: "replace",
+    action: "upsert",
     table: "services",
     rows: data.map((s) => ({
       id: s.id,
@@ -243,7 +326,10 @@ export async function fetchStylists(): Promise<Stylist[]> {
     const sb = getSupabase();
     if (sb) {
       const { data, error } = await sb.from("stylists").select("*").order("id");
-      if (!error && data && data.length > 0) return data.map(mapStylist);
+      if (!error && data) {
+        if (data.length > 0) return data.map(mapStylist);
+        return loadLocal(KEYS.stylists, defaultStylists);
+      }
     }
   } catch (e) {
     console.error("fetchStylists", e);
@@ -258,7 +344,7 @@ export function getStylists(): Stylist[] {
 export async function setStylists(data: Stylist[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.stylists, data);
   return adminMutate({
-    action: "replace",
+    action: "upsert",
     table: "stylists",
     rows: data.map((s) => ({
       id: s.id,
@@ -298,7 +384,7 @@ export function getExtensions(): Extension[] {
 export async function setExtensions(data: Extension[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.extensions, data);
   return adminMutate({
-    action: "replace",
+    action: "upsert",
     table: "extensions",
     rows: data.map((x) => ({
       id: x.id,
