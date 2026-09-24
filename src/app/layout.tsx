@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     default: "Preshy Beauty — Apparel & Hair Salon | Ndola",
     template: "%s | Preshy Beauty",
   },
+  icons: {
+    icon: "favicon.ico?v=3",
+  },
   description:
     "Preshy Beauty in Ndola Town Centre — curated apparel, wig installations, Spanish curls, fish tails, deep wave, bone straight and more. Call +260 978 974 055.",
   keywords: [
