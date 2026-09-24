@@ -22,8 +22,11 @@ async function adminMutate(payload: {
   table: string;
   rows?: unknown[];
   id?: number;
-}): Promise<void> {
-  if (!isSupabaseConfigured() || typeof window === "undefined") return;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: true }; // local-only mode
+  }
+  if (typeof window === "undefined") return { ok: false, error: "Server-side mutate not supported" };
   try {
     const res = await fetch("/api/admin/mutate", {
       method: "POST",
@@ -33,10 +36,15 @@ async function adminMutate(payload: {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      console.error("admin mutate failed", data.error || res.status);
+      const error = data.error || `Save failed (${res.status})`;
+      console.error("admin mutate failed", error);
+      return { ok: false, error };
     }
+    return { ok: true };
   } catch (e) {
-    console.error("admin mutate failed", e);
+    const error = e instanceof Error ? e.message : "Network error";
+    console.error("admin mutate failed", error);
+    return { ok: false, error };
   }
 }
 
@@ -151,7 +159,12 @@ export async function fetchProducts(): Promise<Product[]> {
     const sb = getSupabase();
     if (sb) {
       const { data, error } = await sb.from("products").select("*").order("id");
-      if (!error && data && data.length > 0) return data.map(mapProduct);
+      if (!error && data) {
+        if (data.length > 0) return data.map(mapProduct);
+        // DB connected but empty — try local cache, else defaults
+        const local = loadLocal(KEYS.products, defaultProducts);
+        return local;
+      }
     }
   } catch (e) {
     console.error("fetchProducts", e);
@@ -163,9 +176,9 @@ export function getProducts(): Product[] {
   return loadLocal(KEYS.products, defaultProducts);
 }
 
-export async function setProducts(data: Product[]): Promise<void> {
+export async function setProducts(data: Product[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.products, data);
-  await adminMutate({
+  return adminMutate({
     action: "replace",
     table: "products",
     rows: data.map((p) => ({
@@ -205,9 +218,9 @@ export function getServices(): Service[] {
   return loadLocal(KEYS.services, defaultServices);
 }
 
-export async function setServices(data: Service[]): Promise<void> {
+export async function setServices(data: Service[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.services, data);
-  await adminMutate({
+  return adminMutate({
     action: "replace",
     table: "services",
     rows: data.map((s) => ({
@@ -242,9 +255,9 @@ export function getStylists(): Stylist[] {
   return loadLocal(KEYS.stylists, defaultStylists);
 }
 
-export async function setStylists(data: Stylist[]): Promise<void> {
+export async function setStylists(data: Stylist[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.stylists, data);
-  await adminMutate({
+  return adminMutate({
     action: "replace",
     table: "stylists",
     rows: data.map((s) => ({
@@ -267,7 +280,10 @@ export async function fetchExtensions(): Promise<Extension[]> {
     const sb = getSupabase();
     if (sb) {
       const { data, error } = await sb.from("extensions").select("*").order("id");
-      if (!error && data && data.length > 0) return data.map(mapExtension);
+      if (!error && data) {
+        if (data.length > 0) return data.map(mapExtension);
+        return loadLocal(KEYS.extensions, defaultExtensions);
+      }
     }
   } catch (e) {
     console.error("fetchExtensions", e);
@@ -279,9 +295,9 @@ export function getExtensions(): Extension[] {
   return loadLocal(KEYS.extensions, defaultExtensions);
 }
 
-export async function setExtensions(data: Extension[]): Promise<void> {
+export async function setExtensions(data: Extension[]): Promise<{ ok: boolean; error?: string }> {
   saveLocal(KEYS.extensions, data);
-  await adminMutate({
+  return adminMutate({
     action: "replace",
     table: "extensions",
     rows: data.map((x) => ({

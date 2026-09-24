@@ -177,7 +177,14 @@ export default function AdminPage() {
       const next = editingId
         ? products.map((p) => (p.id === editingId ? item : p))
         : [...products, item];
-      await setProducts(next);
+      const res = await setProducts(next);
+      if (!res.ok) {
+        alert(
+          "Saved on this device only. Cloud sync failed: " +
+            (res.error || "unknown") +
+            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
+        );
+      }
       setProductsState(next);
     } else if (formType === "services") {
       const item: Service = {
@@ -190,7 +197,14 @@ export default function AdminPage() {
       const next = editingId
         ? services.map((s) => (s.id === editingId ? item : s))
         : [...services, item];
-      await setServices(next);
+      const res = await setServices(next);
+      if (!res.ok) {
+        alert(
+          "Saved on this device only. Cloud sync failed: " +
+            (res.error || "unknown") +
+            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
+        );
+      }
       setServicesState(next);
     } else if (formType === "stylists") {
       const item: Stylist = {
@@ -203,7 +217,14 @@ export default function AdminPage() {
       const next = editingId
         ? stylists.map((s) => (s.id === editingId ? item : s))
         : [...stylists, item];
-      await setStylists(next);
+      const res = await setStylists(next);
+      if (!res.ok) {
+        alert(
+          "Saved on this device only. Cloud sync failed: " +
+            (res.error || "unknown") +
+            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
+        );
+      }
       setStylistsState(next);
     } else if (formType === "extensions") {
       const item: Extension = {
@@ -218,7 +239,14 @@ export default function AdminPage() {
       const next = editingId
         ? extensions.map((x) => (x.id === editingId ? item : x))
         : [...extensions, item];
-      await setExtensions(next);
+      const res = await setExtensions(next);
+      if (!res.ok) {
+        alert(
+          "Saved on this device only. Cloud sync failed: " +
+            (res.error || "unknown") +
+            "\n\nCheck SUPABASE_SERVICE_ROLE_KEY on Vercel and that you are logged in as admin."
+        );
+      }
       setExtensionsState(next);
     }
     closeForm();
