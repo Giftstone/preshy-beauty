@@ -39,6 +39,7 @@ export default function CartDrawer({
             ) : (
               cart.map((item, idx) => (
                 <div key={`${item.id}-${item.size}`} className="flex gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={item.image}
                     alt={item.name}

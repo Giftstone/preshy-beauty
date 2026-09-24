@@ -167,7 +167,7 @@ export const services: Service[] = [
   { id: 31, name: "Hair Treatment Ritual", duration: 60, price: 350, description: "Deep conditioning, protein treatment or moisture ritual to restore health and shine." },
   { id: 32, name: "Hot Oil Treatment", duration: 45, price: 280, description: "Nourishing hot oil treatment for dry or damaged hair." },
   { id: 33, name: "Relaxer / Texturizer", duration: 120, price: 450, description: "Professional relaxer or texturizer application with neutralizing and care." },
-  { id: 34, name: "Retwist (Dreadlocks)", duration: 120, price: 400, price: "Loc retwist and maintenance for clean, neat dreadlocks." },
+  { id: 34, name: "Retwist (Dreadlocks)", duration: 120, price: 400, description: "Loc retwist and maintenance for clean, neat dreadlocks." },
   { id: 35, name: "Starter Locs", duration: 150, price: 500, description: "Professional starter locs — comb coils or two-strand beginnings." },
   { id: 36, name: "Twist Out / Wash & Go", duration: 75, price: 300, description: "Defined twist-out or wash-and-go styling for natural hair." },
   { id: 37, name: "Cornrow / Braid Takedown", duration: 60, price: 200, description: "Gentle takedown of braids or cornrows with detangle and basic care." },
