@@ -106,12 +106,24 @@ export default function ShopContent() {
                   {x.length ? ` · ${x.length}` : ""}
                 </p>
                 <p className="text-sm text-taupe mt-1">ZMW {x.price.toLocaleString()}</p>
-                <a
-                  href="tel:+260978974055"
-                  className="inline-block mt-2 text-xs text-terracotta hover:underline"
-                >
-                  Call to order
-                </a>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                  <a
+                    href="tel:+260978974055"
+                    className="text-xs text-terracotta hover:underline"
+                  >
+                    Call
+                  </a>
+                  <a
+                    href={`https://wa.me/260978974055?text=${encodeURIComponent(
+                      `Hi Preshy Beauty! I'd like to order: ${x.name} (ZMW ${x.price.toLocaleString()}).`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-terracotta hover:underline"
+                  >
+                    WhatsApp
+                  </a>
+                </div>
               </div>
             ))}
           </div>
