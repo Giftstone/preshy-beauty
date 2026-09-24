@@ -152,20 +152,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-taupe/20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center text-sm text-taupe">
-          <p className="font-serif text-lg text-charcoal mb-2">Preshy Beauty</p>
-          <p>Ndola Town Centre, Ndola, Zambia</p>
-          <p className="mt-2">
-            <a href="tel:+260978974055" className="hover:text-charcoal">+260 978 974 055</a>
-            {" · "}
-            <a href="tel:+260962598440" className="hover:text-charcoal">+260 962 598 440</a>
-          </p>
-          <p className="mt-4">© 2026 Preshy Beauty</p>
-        </div>
-      </footer>
     </main>
   );
 }

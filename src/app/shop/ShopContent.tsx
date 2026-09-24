@@ -68,6 +68,8 @@ export default function ShopContent() {
                   src={p.image}
                   alt={p.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
               <h3 className="text-sm font-medium group-hover:text-terracotta transition">
@@ -94,6 +96,8 @@ export default function ShopContent() {
                     src={x.image}
                     alt={x.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                  loading="lazy"
+                  decoding="async"
                   />
                 </div>
                 <h3 className="text-sm font-medium">{x.name}</h3>

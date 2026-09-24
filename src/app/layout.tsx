@@ -4,6 +4,7 @@ import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
 import Navbar from "@/components/Navbar";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import Footer from "@/components/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -59,8 +60,11 @@ export default function RootLayout({
         className={`${inter.variable} ${playfair.variable} antialiased bg-cream text-charcoal`}
       >
         <CartProvider>
-          <Navbar />
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Navbar />
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </div>
           <WhatsAppButton />
         </CartProvider>
       </body>

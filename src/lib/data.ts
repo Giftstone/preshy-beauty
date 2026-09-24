@@ -126,6 +126,40 @@ export const products: Product[] = [
     sizes: ["One Size"],
     colors: ["Cognac", "Black", "Cream"],
   },
+
+  {
+    id: 9,
+    name: "Tailored Two-Piece Suit",
+    price: 1850,
+    category: "suits",
+    image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&q=80",
+    images: ["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80"],
+    description: "Sharp tailored suit for formal events, interviews and celebrations. Available in classic cuts.",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Black", "Navy", "Charcoal"],
+  },
+  {
+    id: 10,
+    name: "Signature Eau de Parfum",
+    price: 450,
+    category: "perfumes",
+    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&q=80",
+    images: ["https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80"],
+    description: "Long-lasting unisex fragrance with warm floral notes — perfect for day and evening.",
+    sizes: ["50ml", "100ml"],
+    colors: ["Default"],
+  },
+  {
+    id: 11,
+    name: "Luxury Bedding Set",
+    price: 980,
+    category: "beddings",
+    image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80",
+    images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80"],
+    description: "Soft premium bedding set — duvet cover, fitted sheet and pillowcases. Hotel-quality comfort.",
+    sizes: ["Double", "Queen", "King"],
+    colors: ["Ivory", "Grey", "Blush"],
+  },
 ];
 
 export const services: Service[] = [

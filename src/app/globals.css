@@ -7,6 +7,10 @@
   --foreground: #1c1c1c;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -15,4 +19,25 @@ body {
 
 .font-serif {
   font-family: var(--font-playfair), Georgia, serif;
+}
+
+/* Faster perceived interaction */
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  content-visibility: auto;
+}
+
+/* Focus accessibility */
+:focus-visible {
+  outline: 2px solid #c47a5a;
+  outline-offset: 2px;
+}
+
+/* Subtle selection */
+::selection {
+  background: rgba(196, 122, 90, 0.25);
 }

@@ -11,6 +11,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [payment, setPayment] = useState("mobile_money");
   const [error, setError] = useState("");
+  const [customerSnap, setCustomerSnap] = useState({ name: "", phone: "" });
 
   const shipping = total >= 1500 ? 0 : 120;
   const grand = total + shipping;
@@ -27,6 +28,9 @@ export default function CheckoutPage() {
   }
 
   if (success) {
+    const waText = encodeURIComponent(
+      `Hi Preshy Beauty! I placed order ${orderId} (${payment === "mobile_money" ? "Mobile Money" : "Payment on Delivery"}). Name: ${customerSnap.name}. Phone: ${customerSnap.phone}. Total: ZMW ${grand.toLocaleString()}.`
+    );
     return (
       <main className="max-w-3xl mx-auto px-4 py-20 text-center">
         <div className="w-16 h-16 bg-sage/20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl text-sage">
@@ -34,12 +38,30 @@ export default function CheckoutPage() {
         </div>
         <h2 className="font-serif text-3xl mb-3">Order confirmed!</h2>
         <p className="text-taupe mb-2">Order reference: {orderId}</p>
-        <p className="text-sm text-taupe mb-8">
-          We&apos;ll contact you on WhatsApp. Questions?{" "}
-          <a href="tel:+260978974055" className="text-terracotta">
-            +260 978 974 055
-          </a>
+        <p className="text-sm text-taupe mb-6 max-w-md mx-auto">
+          {payment === "mobile_money"
+            ? "Send payment via Airtel Money, MTN MoMo or Zamtel, then message us on WhatsApp with your order reference."
+            : "Pay when your order arrives in Ndola. We’ll confirm delivery details on WhatsApp."}
         </p>
+        <a
+          href={`https://wa.me/260978974055?text=${waText}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block bg-[#25D366] text-white px-8 py-3 rounded-full text-sm font-medium mb-4"
+        >
+          Confirm on WhatsApp
+        </a>
+        <div className="text-sm text-taupe space-y-1 mb-8">
+          <p>
+            <a href="tel:+260978974055" className="text-terracotta">
+              +260 978 974 055
+            </a>
+            {" · "}
+            <a href="tel:+260962598440" className="text-terracotta">
+              +260 962 598 440
+            </a>
+          </p>
+        </div>
         <a
           href="/"
           className="inline-block bg-charcoal text-cream px-8 py-3 rounded-full text-sm font-medium"
@@ -52,8 +74,7 @@ export default function CheckoutPage() {
 
   const finalizeOrder = async (
     customer: Record<string, string>,
-    paymentMethod: string,
-    paymentRef = ""
+    paymentMethod: string
   ) => {
     const id = "PB" + Date.now().toString().slice(-8);
     await saveOrder({
@@ -62,10 +83,11 @@ export default function CheckoutPage() {
       total: grand,
       customer,
       payment: paymentMethod,
-      payment_ref: paymentRef,
-      status: paymentMethod === "card" && paymentRef ? "paid" : "pending",
+      payment_ref: "",
+      status: "pending",
     });
     clearCart();
+    setCustomerSnap({ name: customer.name || "", phone: customer.phone || "" });
     setOrderId(id);
     setSuccess(true);
   };
@@ -76,15 +98,13 @@ export default function CheckoutPage() {
     setProcessing(true);
     const fd = new FormData(e.target as HTMLFormElement);
     const customer = {
-      name: String(fd.get("fullname") || ""),
+      name: String(fd.get("name") || ""),
       email: String(fd.get("email") || ""),
       phone: String(fd.get("phone") || ""),
       address: String(fd.get("address") || ""),
       city: String(fd.get("city") || ""),
     };
-
     try {
-      // Mobile money or payment on delivery
       await finalizeOrder(customer, payment);
     } catch {
       setError("Something went wrong. Please try again or call us.");
@@ -103,7 +123,12 @@ export default function CheckoutPage() {
               {cart.map((item) => (
                 <div key={`${item.id}-${item.size}`} className="flex gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.image} className="w-16 h-20 object-cover rounded-lg" alt="" />
+                  <img
+                    src={item.image}
+                    className="w-16 h-20 object-cover rounded-lg"
+                    alt=""
+                    loading="lazy"
+                  />
                   <div className="flex-1 text-sm">
                     <p className="font-medium">{item.name}</p>
                     <p className="text-taupe text-xs">
@@ -139,7 +164,7 @@ export default function CheckoutPage() {
                 <div>
                   <label className="block text-sm mb-1.5">Full Name</label>
                   <input
-                    name="fullname"
+                    name="name"
                     required
                     className="w-full px-4 py-3 rounded-xl border border-taupe/30 bg-cream focus:outline-none focus:border-terracotta"
                   />
@@ -154,11 +179,12 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm mb-1.5">Phone</label>
+                  <label className="block text-sm mb-1.5">Phone / WhatsApp</label>
                   <input
                     type="tel"
                     name="phone"
                     required
+                    placeholder="+260 …"
                     className="w-full px-4 py-3 rounded-xl border border-taupe/30 bg-cream focus:outline-none focus:border-terracotta"
                   />
                 </div>
@@ -186,15 +212,23 @@ export default function CheckoutPage() {
               <h2 className="font-medium mb-4">Payment Method</h2>
               <div className="space-y-3">
                 {[
-                  { value: "mobile_money", label: "Mobile Money", desc: "Airtel Money, MTN MoMo, Zamtel — we confirm payment on WhatsApp" },
-                  { value: "cod", label: "Payment on Delivery", desc: "Pay cash or mobile money when you receive your order" },
+                  {
+                    value: "mobile_money",
+                    label: "Mobile Money",
+                    desc: "Airtel Money, MTN MoMo, Zamtel — confirm on WhatsApp after ordering",
+                  },
+                  {
+                    value: "cod",
+                    label: "Payment on Delivery",
+                    desc: "Pay cash or mobile money when you receive your order",
+                  },
                 ].map((opt) => (
                   <label
                     key={opt.value}
-                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer ${
+                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition ${
                       payment === opt.value
                         ? "border-terracotta bg-terracotta/5"
-                        : "border-taupe/30"
+                        : "border-taupe/30 hover:border-taupe"
                     }`}
                   >
                     <input
@@ -225,12 +259,10 @@ export default function CheckoutPage() {
               disabled={processing}
               className="w-full bg-charcoal text-cream py-4 rounded-full font-medium hover:bg-charcoal/90 transition text-lg disabled:opacity-60"
             >
-              {processing
-                ? "Processing…"
-                : `Place order · ZMW ${grand.toLocaleString()}`}
+              {processing ? "Processing…" : `Place order · ZMW ${grand.toLocaleString()}`}
             </button>
             <p className="text-xs text-center text-taupe">
-              Secured checkout · Ndola Town Centre · +260 978 974 055
+              Ndola Town Centre · +260 978 974 055 · +260 962 598 440
             </p>
           </form>
         </div>
