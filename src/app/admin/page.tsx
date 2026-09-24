@@ -108,6 +108,16 @@ export default function AdminPage() {
     router.push("/admin/login");
   };
 
+  const checkCloud = async () => {
+    try {
+      const res = await fetch("/api/admin/health", { credentials: "include" });
+      const data = await res.json();
+      alert(JSON.stringify(data, null, 2));
+    } catch (e) {
+      alert("Health check failed: " + (e instanceof Error ? e.message : "network"));
+    }
+  };
+
   const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);
 
   const openAdd = (type: Tab) => {
@@ -335,7 +345,10 @@ export default function AdminPage() {
             <span className="text-xs tracking-widest uppercase text-taupe">Admin</span>
           </div>
           <div className="flex items-center gap-4 text-sm">
-            <button onClick={handleLogout} className="opacity-60 hover:opacity-100">
+            <button type="button" onClick={checkCloud} className="opacity-60 hover:opacity-100 text-xs">
+              Check DB
+            </button>
+            <button type="button" onClick={handleLogout} className="opacity-60 hover:opacity-100">
               Logout
             </button>
           </div>
