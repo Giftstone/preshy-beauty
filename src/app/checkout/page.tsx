@@ -9,7 +9,7 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [orderId, setOrderId] = useState("");
-  const [payment, setPayment] = useState("card");
+  const [payment, setPayment] = useState("mobile_money");
   const [error, setError] = useState("");
 
   const shipping = total >= 1500 ? 0 : 120;
@@ -84,49 +84,7 @@ export default function CheckoutPage() {
     };
 
     try {
-      if (payment === "card") {
-        const pendingId = "PB" + Date.now().toString().slice(-8);
-        await saveOrder({
-          id: pendingId,
-          items: cart,
-          total: grand,
-          customer,
-          payment: "card",
-          payment_ref: pendingId,
-          status: "pending",
-        });
-        const res = await fetch("/api/paystack/initialize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: customer.email,
-            amount: grand,
-            reference: pendingId,
-            metadata: { customer, items: cart, order_id: pendingId },
-          }),
-        });
-        const data = await res.json();
-
-        if (res.ok && data?.data?.authorization_url) {
-          // Redirect to Paystack hosted page
-          window.location.href = data.data.authorization_url;
-          return;
-        }
-
-        // Fallback: demo mode if Paystack not configured
-        if (res.status === 503) {
-          await new Promise((r) => setTimeout(r, 1200));
-          await finalizeOrder(customer, "card-demo");
-          setProcessing(false);
-          return;
-        }
-
-        setError(data?.error || "Payment could not be started. Try EFT or COD.");
-        setProcessing(false);
-        return;
-      }
-
-      // EFT / COD
+      // Mobile money or payment on delivery
       await finalizeOrder(customer, payment);
     } catch {
       setError("Something went wrong. Please try again or call us.");
@@ -228,9 +186,8 @@ export default function CheckoutPage() {
               <h2 className="font-medium mb-4">Payment Method</h2>
               <div className="space-y-3">
                 {[
-                  { value: "card", label: "Card / Mobile Money (Paystack)", desc: "Visa, Mastercard, mobile money" },
-                  { value: "eft", label: "EFT / Bank Transfer", desc: "We send details after order" },
-                  { value: "cod", label: "Cash on Delivery", desc: "Pay when you receive" },
+                  { value: "mobile_money", label: "Mobile Money", desc: "Airtel Money, MTN MoMo, Zamtel — we confirm payment on WhatsApp" },
+                  { value: "cod", label: "Payment on Delivery", desc: "Pay cash or mobile money when you receive your order" },
                 ].map((opt) => (
                   <label
                     key={opt.value}
@@ -270,8 +227,6 @@ export default function CheckoutPage() {
             >
               {processing
                 ? "Processing…"
-                : payment === "card"
-                ? `Pay ZMW ${grand.toLocaleString()}`
                 : `Place order · ZMW ${grand.toLocaleString()}`}
             </button>
             <p className="text-xs text-center text-taupe">

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchProducts, fetchExtensions, type Extension } from "@/lib/store";
 import type { Product } from "@/lib/data";
 
-const categories = ["all", "dresses", "tops", "bottoms", "accessories", "extensions"];
+const categories = ["all", "dresses", "tops", "bottoms", "suits", "perfumes", "beddings", "accessories", "extensions"];
 
 export default function ShopContent() {
   const searchParams = useSearchParams();
